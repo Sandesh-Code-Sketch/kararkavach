@@ -32,6 +32,13 @@ def test_poster_is_a_downloadable_pdf():
     assert response.content.startswith(b"%PDF")
 
 
+def test_public_office_poster_endpoint_returns_pdf():
+    response = client.get("/api/poster")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF")
+
+
 def test_selectable_text_pdf_audit_does_not_require_tesseract():
     pdf = FPDF()
     pdf.add_page()

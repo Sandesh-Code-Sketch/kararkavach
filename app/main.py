@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import base64
+from io import BytesIO
 import secrets
 from typing import Any
 
@@ -155,6 +156,7 @@ def serve_audio(token: str, background_tasks: BackgroundTasks) -> FileResponse:
     return FileResponse(path, media_type="audio/mpeg", filename="explanation.mp3")
 
 
+@app.get("/api/poster")
 @app.get("/api/v1/poster")
 def awareness_poster(request: Request, base_url: str | None = Query(None)) -> Response:
     """Create a downloadable A4 Kannada/English awareness poster."""
@@ -164,14 +166,23 @@ def awareness_poster(request: Request, base_url: str | None = Query(None)) -> Re
     qr = qrcode.QRCode(box_size=8, border=2)
     qr.add_data(public_base_url + "/api/v1/audit-sample")
     qr.make(fit=True)
-    image = qr.make_image(fill_color="black", back_color="white")
+    qr_image = qr.make_image(fill_color="black", back_color="white").get_image().convert("RGB")
+    qr_buffer = BytesIO()
+    qr_image.save(qr_buffer, format="PNG")
+    qr_buffer.seek(0)
     canvas = Image.new("RGB", (1240, 1754), "white")
     draw = ImageDraw.Draw(canvas)
-    font_path = Path("C:/Windows/Fonts/Nirmala.ttf")
-    if not font_path.exists():
-        font_path = Path("C:/Windows/Fonts/arial.ttf")
-    title_font = ImageFont.truetype(str(font_path), 52)
-    body_font = ImageFont.truetype(str(font_path), 34)
+    font_candidates = (
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("C:/Windows/Fonts/arial.ttf"),
+    )
+    font_path = next((path for path in font_candidates if path.exists()), None)
+    if font_path is None:
+        title_font = ImageFont.load_default()
+        body_font = ImageFont.load_default()
+    else:
+        title_font = ImageFont.truetype(str(font_path), 52)
+        body_font = ImageFont.truetype(str(font_path), 34)
     def centered(text: str, y: int, font: ImageFont.FreeTypeFont) -> None:
         box = draw.textbbox((0, 0), text, font=font)
         draw.text(((1240 - (box[2] - box[0])) / 2, y), text, fill="black", font=font)
@@ -179,13 +190,13 @@ def awareness_poster(request: Request, base_url: str | None = Query(None)) -> Re
     centered("ಕರಾರು ಪತ್ರವನ್ನು ಪರಿಶೀಲಿಸಿ", 220, body_font)
     centered("Scan to learn about deposits, penalties and your rights.", 320, body_font)
     centered("ಠೇವಣಿ, ದಂಡ ಮತ್ತು ನಿಮ್ಮ ಹಕ್ಕುಗಳ ಬಗ್ಗೆ ತಿಳಿಯಲು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.", 380, body_font)
-    qr_image = image.convert("RGB").resize((640, 640))
-    canvas.paste(qr_image, (300, 550))
     centered("Private demo audit  •  ಪರಿಶೀಲನೆಗಾಗಿ ಮಾದರಿ", 1280, body_font)
-    import io
-    png = io.BytesIO()
-    canvas.save(png, format="PNG")
+    poster_buffer = BytesIO()
+    canvas.save(poster_buffer, format="PNG")
+    poster_buffer.seek(0)
     pdf = FPDF(format="A4")
     pdf.add_page()
-    pdf.image(png, x=0, y=0, w=210, h=297)
-    return Response(content=bytes(pdf.output()), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=kararkavach-awareness-poster.pdf"})
+    pdf.image(poster_buffer, x=0, y=0, w=210, h=297)
+    pdf.image(qr_buffer, x=50.8, y=93.1, w=108.4, h=108.4)
+    pdf_bytes = bytes(pdf.output())
+    return Response(content=pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=kararkavach-awareness-poster.pdf"})

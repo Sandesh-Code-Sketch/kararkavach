@@ -170,7 +170,7 @@ def awareness_poster(request: Request, base_url: str | None = Query(None)) -> Re
     # makes the QR point back to the scanning phone instead of this server.
     public_base_url = (base_url or str(request.base_url)).rstrip("/")
     qr = qrcode.QRCode(box_size=8, border=2)
-    qr.add_data(public_base_url + "/api/v1/audit-sample")
+    qr.add_data(public_base_url + "/?demo=1")
     qr.make(fit=True)
     qr_image = qr.make_image(fill_color="black", back_color="white").get_image().convert("RGB")
     qr_buffer = BytesIO()

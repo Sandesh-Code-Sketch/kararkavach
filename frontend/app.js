@@ -17,6 +17,9 @@ document.querySelectorAll(".language").forEach((button) => button.addEventListen
   if (state.payload) loadSample();
 }));
 sampleButton.addEventListener("click", loadSample);
+document.addEventListener("DOMContentLoaded", () => {
+  if (new URLSearchParams(window.location.search).get("demo") === "1") loadSample();
+});
 fileInput.addEventListener("change", () => { if (fileInput.files[0]) uploadFile(fileInput.files[0]); });
 document.querySelector("#copy-whatsapp").addEventListener("click", () => copyText(document.querySelector("#whatsapp-text").textContent));
 canvas.addEventListener("click", onCanvasClick);

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import base64
+import gc
 from io import BytesIO
 import secrets
 from typing import Any
@@ -134,14 +135,19 @@ async def audit_upload(file: UploadFile = File(...), lang: str = Query("en", pat
     if not content:
         raise HTTPException(400, "Uploaded file is empty")
     pages = _ocr_bytes(content, file.filename or "upload")
-    return _run_pipeline(pages, lang)
+    result = _run_pipeline(pages, lang)
+    del content, pages
+    gc.collect()
+    return result
 
 
 @app.get("/api/v1/audit-sample")
 def audit_sample(lang: str = Query("en", pattern="^(en|kn|hi)$")) -> dict[str, Any]:
     """Run an instant audit of the bundled rental agreement demo."""
     try:
-        return _run_pipeline([extract_clauses(SAMPLE_PATH)], lang)
+        result = _run_pipeline([extract_clauses(SAMPLE_PATH)], lang)
+        gc.collect()
+        return result
     except Exception as exc:
         raise HTTPException(500, f"Sample audit failed: {type(exc).__name__}") from exc
 

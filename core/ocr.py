@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import gc
 import shutil
 import re
 import io
@@ -15,6 +16,7 @@ from pytesseract import Output
 
 
 SAMPLE_PATH = Path(__file__).resolve().parents[1] / "assets" / "sample_rental_agreement.png"
+MAX_OCR_DIMENSION = 1400
 
 
 def _configure_tesseract() -> None:
@@ -69,6 +71,27 @@ def _preprocess(image: np.ndarray) -> np.ndarray:
     return cv2.adaptiveThreshold(
         denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 11
     )
+
+
+def _scaled_image(image: np.ndarray) -> tuple[np.ndarray, float]:
+    """Resize large pages for OCR, returning the image and inverse scale."""
+    height, width = image.shape[:2]
+    longest = max(height, width)
+    if longest <= MAX_OCR_DIMENSION:
+        return image, 1.0
+    scale = MAX_OCR_DIMENSION / longest
+    resized = cv2.resize(image, (max(1, round(width * scale)), max(1, round(height * scale))), interpolation=cv2.INTER_AREA)
+    return resized, 1.0 / scale
+
+
+def _restore_boxes(clauses: list[OCRClause], scale: float) -> list[OCRClause]:
+    """Map boxes measured on a resized page back to its original pixels."""
+    if scale == 1.0:
+        return clauses
+    for clause in clauses:
+        x, y, width, height = clause.bbox
+        clause.bbox = (round(x * scale), round(y * scale), round(width * scale), round(height * scale))
+    return clauses
 
 
 def _sample_fallback(binary: np.ndarray) -> list[OCRClause]:
@@ -155,22 +178,48 @@ def extract_clauses(image_path: str | Path = SAMPLE_PATH) -> OCRResult:
     if image is None:
         raise FileNotFoundError(f"Unable to read agreement image: {path}")
     height, width = image.shape[:2]
-    binary = _preprocess(image)
+    original = image
+    image, inverse_scale = _scaled_image(image)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    denoised = cv2.fastNlMeansDenoising(gray, h=10)
+    thresh = cv2.adaptiveThreshold(
+        denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 11
+    )
     try:
-        data = pytesseract.image_to_data(binary, output_type=Output.DICT, config="--psm 6")
+        data = pytesseract.image_to_data(thresh, output_type=Output.DICT, config="--psm 6")
     except (pytesseract.TesseractNotFoundError, FileNotFoundError):
         if path.resolve() != SAMPLE_PATH.resolve():
             raise RuntimeError("Tesseract is required to OCR images other than the bundled sample")
-        return OCRResult(_sample_fallback(binary), width, height, fallback=True)
-    return OCRResult(_group_tesseract(data), width, height)
+        fallback_thresh = _preprocess(original) if inverse_scale != 1.0 else thresh
+        clauses = _sample_fallback(fallback_thresh)
+        if fallback_thresh is not thresh:
+            del fallback_thresh
+        del data
+        del original, image, gray, denoised, thresh
+        gc.collect()
+        return OCRResult(clauses, width, height, fallback=True)
+    clauses = _restore_boxes(_group_tesseract(data), inverse_scale)
+    del data
+    del original, image, gray, denoised, thresh
+    gc.collect()
+    return OCRResult(clauses, width, height)
 
 
 def extract_clauses_from_image(image: np.ndarray) -> OCRResult:
     """OCR an already decoded image without creating a user file."""
     height, width = image.shape[:2]
-    binary = _preprocess(image)
-    data = pytesseract.image_to_data(binary, output_type=Output.DICT, config="--psm 6")
-    return OCRResult(_group_tesseract(data), width, height)
+    source, inverse_scale = _scaled_image(image)
+    gray = cv2.cvtColor(source, cv2.COLOR_BGR2GRAY) if source.ndim == 3 else source
+    denoised = cv2.fastNlMeansDenoising(gray, h=10)
+    thresh = cv2.adaptiveThreshold(
+        denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 11
+    )
+    data = pytesseract.image_to_data(thresh, output_type=Output.DICT, config="--psm 6")
+    clauses = _restore_boxes(_group_tesseract(data), inverse_scale)
+    del data
+    del image, source, gray, denoised, thresh
+    gc.collect()
+    return OCRResult(clauses, width, height)
 
 
 def extract_clauses_from_pdf_page(page: object, scale: float = 2.0) -> OCRResult:

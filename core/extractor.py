@@ -5,8 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-import spacy
-from spacy.language import Language
+import gc
 
 
 @dataclass
@@ -43,14 +42,38 @@ _RISK_PATTERNS = [
 ]
 
 
-def _make_ruler() -> Language:
-    nlp = spacy.blank("en")
-    ruler = nlp.add_pipe("entity_ruler", config={"phrase_matcher_attr": "LOWER"})
-    ruler.add_patterns(_RISK_PATTERNS)
-    return nlp
+_NLP = None
+_NLP_INITIALIZED = False
 
 
-_RULER = _make_ruler()
+def _get_nlp() -> object | None:
+    """Lazily load lightweight English NER and rule patterns when available."""
+    global _NLP, _NLP_INITIALIZED
+    if _NLP_INITIALIZED:
+        return _NLP
+    _NLP_INITIALIZED = True
+    try:
+        import spacy
+
+        try:
+            nlp = spacy.load(
+                "en_core_web_sm",
+                disable=["parser", "lemmatizer", "attribute_ruler"],
+            )
+            removable = [name for name in nlp.pipe_names if name != "ner"]
+            for name in removable:
+                nlp.remove_pipe(name)
+        except OSError:
+            # Regex extraction remains fully functional when the optional model
+            # is not installed. A blank pipeline still provides EntityRuler.
+            nlp = spacy.blank("en")
+        ruler = nlp.add_pipe("entity_ruler", config={"phrase_matcher_attr": "LOWER"})
+        ruler.add_patterns(_RISK_PATTERNS)
+        _NLP = nlp
+    except (MemoryError, ImportError, OSError):
+        _NLP = None
+        gc.collect()
+    return _NLP
 
 
 def split_clauses(text: str) -> list[tuple[int, str]]:
@@ -112,8 +135,25 @@ def _extract_clause(number: int, text: str) -> ExtractedClause:
         if painting:
             clause.painting_deduction_months = _number_value(painting.group(1))
 
-    doc = _RULER(text)
-    clause.risk_keywords = sorted({entity.text.lower() for entity in doc.ents})
+    nlp = _get_nlp()
+    if nlp is not None:
+        try:
+            doc = nlp(text)
+            clause.risk_keywords = sorted({entity.text.lower() for entity in doc.ents})
+            del doc
+        except MemoryError:
+            gc.collect()
+    # Keep the same deterministic phrase coverage when spaCy or its model
+    # cannot be loaded, without depending on a statistical NER pipeline.
+    lower = text.lower()
+    for phrase, pattern in (
+        ("forfeit", r"\bforfeit(?:ure)?\b"),
+        ("painting", r"\bpaint(?:ing)?\b"),
+        ("without prior notice", r"\bwithout\s+prior\s+notice\b"),
+        ("unannounced", r"\bunannounced\b"),
+    ):
+        if re.search(pattern, lower) and phrase not in clause.risk_keywords:
+            clause.risk_keywords.append(phrase)
     # Preserve the exact rule trigger phrases for easy downstream inspection.
     for phrase in ("without prior notice", "without notice", "unannounced entry"):
         if phrase in text.lower() and phrase not in clause.risk_keywords:

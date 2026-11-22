@@ -1,0 +1,69 @@
+version: 1
+rules:
+  - id: TENANCY_DEPOSIT_CAP
+    description: Security deposit exceeds twice the monthly rent.
+    field: deposit_to_rent_ratio
+    operator: greater_than
+    threshold: 2.0
+    severity: RED
+    penalty: 30
+    legal_reference: Model Tenancy Act deposit cap
+  - id: FORFEITURE_PENALTY
+    description: Full deposit forfeiture or a 100 percent penalty.
+    field: forfeiture_percent
+    operator: greater_than_or_equal
+    threshold: 100
+    severity: RED
+    penalty: 25
+    legal_reference: Indian Contract Act, Section 74
+  - id: EXCESSIVE_LOCKIN
+    description: Lock-in period exceeds six months.
+    field: lock_in_months
+    operator: greater_than
+    threshold: 6
+    severity: YELLOW
+    penalty: 15
+  - id: UNANNOUNCED_ENTRY
+    description: Landlord entry is allowed without prior notice.
+    field: risk_keywords
+    operator: contains_any
+    threshold: [without prior notice, without notice, unannounced entry]
+    severity: YELLOW
+    penalty: 10
+  - id: ARBITRARY_PAINTING_DEDUCTION
+    description: Painting deduction exceeds one month of rent.
+    field: painting_deduction_months
+    operator: greater_than
+    threshold: 1
+    severity: YELLOW
+    penalty: 10
+  - id: MISSING_WITNESS_BLOCK
+    description: The agreement has no witness signature or execution witness marker.
+    field: document_text
+    operator: document_missing_any
+    threshold: [witness, witnesses, in witness whereof]
+    severity: YELLOW
+    penalty: 10
+  - id: MISSING_PROPERTY_ADDRESS
+    description: The agreement has no identifiable property schedule or address marker.
+    field: document_text
+    operator: document_missing_any
+    threshold: [schedule, flat no, house no, bearing no, situated at, apartment, building]
+    severity: RED
+    penalty: 25
+    legal_reference: Agreement should identify the premises
+  - id: UNREGISTERED_LONG_LEASE
+    description: A lease of twelve months or longer mentions no registration.
+    field: document_text
+    operator: unregistered_long_lease
+    threshold: 12
+    severity: RED
+    penalty: 25
+    legal_reference: Registration Act, 1908, Section 17
+  - id: MISSING_EXECUTION_DATE
+    description: The agreement has no identifiable execution date marker.
+    field: document_text
+    operator: document_missing_any
+    threshold: [dated this, day of, "202", effective date]
+    severity: YELLOW
+    penalty: 10

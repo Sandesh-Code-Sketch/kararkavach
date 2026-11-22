@@ -1,0 +1,13 @@
+{
+  "name": "KararKavach Rental Agreement Check",
+  "short_name": "KararKavach",
+  "description": "A private, simple rental agreement risk check.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f2",
+  "theme_color": "#f4f6f2",
+  "icons": [
+    { "src": "/frontend/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

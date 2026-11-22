@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic
+pyyaml
+spacy
+opencv-python-headless
+pytesseract
+pillow
+gTTS
+qrcode[pil]
+fpdf2
+python-multipart
+PyMuPDF
+pytest

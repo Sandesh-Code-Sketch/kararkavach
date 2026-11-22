@@ -1,0 +1,42 @@
+version: 1
+rules:
+  - id: ILLEGAL_COLLATERAL_SMALL_LOAN
+    description: Collateral or security is demanded for an education loan of ₹7.5 lakh or less.
+    field: text
+    operator: education_loan_rule
+    condition: small_loan_collateral
+    severity: RED
+    penalty: 35
+    legal_reference: IBA Model Education Loan Scheme (collateral threshold)
+  - id: FLOATING_FORECLOSURE_PENALTY
+    description: A prepayment or foreclosure charge is applied to a floating-rate individual education loan.
+    field: text
+    operator: education_loan_rule
+    condition: floating_foreclosure
+    severity: RED
+    penalty: 30
+    legal_reference: RBI Fair Practices Code for Lenders
+  - id: UNILATERAL_INTEREST_HIKE
+    description: Interest rates or penal charges may be increased without prior written notice to the student or co-borrower.
+    field: text
+    operator: education_loan_rule
+    condition: unilateral_interest_hike
+    severity: RED
+    penalty: 30
+    legal_reference: RBI Fair Practices Code for Lenders
+  - id: BLANK_CHEQUE_MANDATE
+    description: The student or co-borrower is required to provide a blank or undated signed cheque.
+    field: text
+    operator: education_loan_rule
+    condition: blank_cheque
+    severity: RED
+    penalty: 30
+    legal_reference: RBI Fair Practices Code for Lenders
+  - id: MANDATORY_BUNDLED_INSURANCE
+    description: The student is required to buy insurance exclusively from the bank's partner.
+    field: text
+    operator: education_loan_rule
+    condition: bundled_insurance
+    severity: YELLOW
+    penalty: 15
+    legal_reference: RBI Fair Practices Code for Lenders

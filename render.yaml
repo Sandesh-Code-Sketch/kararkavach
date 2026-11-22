@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: kararkavach
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .

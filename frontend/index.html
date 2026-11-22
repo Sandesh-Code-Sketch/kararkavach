@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f2">
+  <meta name="description" content="Check a rental agreement for common risks with KararKavach.">
+  <link rel="manifest" href="/frontend/manifest.json">
+  <link rel="stylesheet" href="/frontend/styles.css?v=5">
+  <title>KararKavach — Know your rental rights</title>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/" aria-label="KararKavach home"><span class="brand-mark">K</span><span>Karar<span class="brand-light">Kavach</span><small>RENTAL AGREEMENT CHECK</small></span></a><div class="privacy"><span class="privacy-dot"></span>Processed In-Memory <b>•</b> Zero Data Stored</div></header>
+  <main>
+    <section class="intro"><div class="eyebrow">A clearer agreement starts here</div><h1>Know what you’re<br class="desktop"> signing.</h1><p>Check your rental agreement for common red flags. Private, simple, and made for everyone.</p>
+      <div class="languages" role="group" aria-label="Explanation language"><button class="language active" data-lang="en">English</button><button class="language" data-lang="kn">ಕನ್ನಡ</button><button class="language" data-lang="hi">हिन्दी</button></div>
+    </section>
+    <section class="actions" aria-label="Agreement actions"><label class="button button-primary upload-button"> <span class="button-icon">↑</span><span>Upload agreement<small>Photo or PDF · camera supported</small></span><input id="file-input" type="file" accept="image/*,.pdf" capture="environment"></label><button class="button button-sample" id="sample-button"><span class="button-icon">✦</span><span>Load Sample Trap Rental Agreement<small>Try an instant demo</small></span></button><a class="button button-poster" href="/api/v1/poster"><span class="button-icon">▤</span><span>Download Public Office QR Poster (PDF)<small>Print and share</small></span></a></section>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <section id="results" class="results" hidden>
+      <div class="document-panel panel"><div class="panel-heading"><div><span class="eyebrow">DOCUMENT VIEW</span><h2 id="document-title">Agreement scan</h2></div><span class="box-legend"><i class="legend-red"></i>High risk <i class="legend-yellow"></i>Review</span></div><div class="page-switcher"><button id="page-prev" type="button" aria-label="Previous page">‹</button><span id="page-indicator">Page 1 of 1</span><button id="page-next" type="button" aria-label="Next page">›</button></div><div class="canvas-wrap" id="canvas-wrap"><canvas id="document-canvas" aria-label="Scanned agreement with clickable risk highlights"></canvas><div id="empty-canvas" class="empty-canvas">Your scanned agreement will appear here.</div></div><p class="hint">Tap a highlighted clause to see why it was flagged.</p></div>
+      <div class="audit-panel"><div class="score-card panel"><div><span class="eyebrow">AGREEMENT SAFETY SCORE</span><p id="verdict-label" class="verdict-label">Awaiting review</p></div><div class="score-gauge" id="score-gauge"><span><strong id="score-value">—</strong><small>/ 100</small></span></div></div><div class="clause-heading"><div><span class="eyebrow">YOUR REVIEW</span><h2>Clauses to look at</h2></div><span id="clause-count" class="count"></span></div><div id="clause-list" class="clause-list"></div><section class="whatsapp-card panel"><div class="whatsapp-icon">↗</div><div><span class="eyebrow">A POLITE WAY TO ASK</span><h3>Start a conversation</h3><p id="whatsapp-text">Your message will appear after the review.</p><button id="copy-whatsapp" class="text-button" disabled>Copy WhatsApp reply <span>↗</span></button></div></section></div>
+    </section>
+    <section class="trust-row"><span>⌑ &nbsp;No account needed</span><span>◉ &nbsp;Your file is processed in memory</span><span>✓ &nbsp;Rules-based review</span></section>
+  </main>
+  <footer><span class="brand-footer">KararKavach</span><span>Information to help you ask better questions. Not legal advice.</span></footer>
+  <script src="/frontend/app.js?v=5" defer></script>
+</body>
+</html>
